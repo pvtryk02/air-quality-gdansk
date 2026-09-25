@@ -71,7 +71,18 @@ services:
     container_name: air-forecasting
     depends_on:
       - postgres
-    restart: "no"
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: ./dashboard
+    container_name: air-dashboard
+    ports:
+      - "8501:8501"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
 
 volumes:
   postgres_data:

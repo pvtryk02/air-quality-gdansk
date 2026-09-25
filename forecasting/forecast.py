@@ -46,6 +46,16 @@ for station in STATIONS:
     df["measured_at"] = pd.to_datetime(df["measured_at"])
     df = df.set_index("measured_at")
 
+    # Usuń ewentualne duplikaty czasu
+    df = df[~df.index.duplicated(keep="last")]
+
+    # Wymuś regularny odstęp co 1 godzinę
+    df = df.asfreq("h")
+
+    # Uzupełnij brakujące godziny interpolacją
+    df["pm25"] = df["pm25"].interpolate(method="linear")
+    df["pm10"] = df["pm10"].interpolate(method="linear")
+
     print("Loaded rows:", len(df))
     print()
     print(df.tail())
