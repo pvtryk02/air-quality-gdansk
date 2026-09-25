@@ -101,6 +101,16 @@ for station in STATIONS:
     print()
     print(forecast.to_string(index=False))
 
+    # Usuń poprzednią prognozę dla tej stacji
+    cursor.execute(
+        """
+        DELETE FROM forecasts
+        WHERE station_code = %s;
+        """,
+        (station,)
+    )
+
+    # Zapisz aktualną prognozę 24h
     for _, row in forecast.iterrows():
         cursor.execute(
             """
