@@ -83,6 +83,13 @@ services:
       - postgres
     restart: unless-stopped
 
+  rag:
+    build:
+      context: ./rag
+    container_name: air-rag
+    depends_on:
+      - postgres
+    restart: "no"
 
 volumes:
   postgres_data:
