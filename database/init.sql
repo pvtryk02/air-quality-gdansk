@@ -1,0 +1,14 @@
+CREATE EXTENSION IF NOT EXISTS vector;
+
+CREATE TABLE measurements (
+    id BIGSERIAL PRIMARY KEY,
+    station_code VARCHAR(100) NOT NULL,
+    measured_at TIMESTAMPTZ NOT NULL,
+    pm25 DOUBLE PRECISION,
+    pm10 DOUBLE PRECISION,
+    temperature DOUBLE PRECISION,
+    humidity DOUBLE PRECISION,
+    pressure DOUBLE PRECISION,
+    source VARCHAR(100),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);

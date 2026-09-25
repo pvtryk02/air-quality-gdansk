@@ -1,0 +1,78 @@
+services:
+
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:latest
+    container_name: redpanda
+    command:
+      - redpanda
+      - start
+      - --overprovisioned
+      - --smp
+      - "1"
+      - --memory
+      - "1G"
+      - --reserve-memory
+      - "0M"
+      - --node-id
+      - "0"
+      - --check=false
+      - --kafka-addr
+      - PLAINTEXT://0.0.0.0:9092,OUTSIDE://0.0.0.0:19092
+      - --advertise-kafka-addr
+      - PLAINTEXT://redpanda:9092,OUTSIDE://localhost:19092
+    ports:
+      - "19092:19092"
+      - "9644:9644"
+
+  redpanda-console:
+    image: docker.redpanda.com/redpandadata/console:latest
+    container_name: redpanda-console
+    environment:
+      KAFKA_BROKERS: redpanda:9092
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redpanda
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: air-postgres
+    environment:
+      POSTGRES_DB: airquality
+      POSTGRES_USER: airuser
+      POSTGRES_PASSWORD: airpassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  nodered:
+    image: nodered/node-red:latest
+    container_name: nodered
+    ports:
+      - "1880:1880"
+    volumes:
+      - nodered_data:/data
+    depends_on:
+      - redpanda
+
+  consumer:
+    build: ./consumer
+    container_name: air-consumer
+    depends_on:
+      - redpanda
+      - postgres
+    restart: unless-stopped
+
+  forecasting:
+    build:
+      context: ./forecasting
+    container_name: air-forecasting
+    depends_on:
+      - postgres
+    restart: "no"
+
+volumes:
+  postgres_data:
+  nodered_data:
