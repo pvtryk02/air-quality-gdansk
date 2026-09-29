@@ -60,8 +60,9 @@ for station in STATIONS:
     print()
     print(df.tail())
 
-    if len(df) < 24:
-        print(f"Skipping {station} - za mało danych.")
+    # Potrzebujemy minimum dwóch pełnych okresów dobowych
+    if len(df) < 48:
+        print(f"Skipping {station} - za mało danych do sezonowości 24h.")
         continue
 
     # PM2.5
@@ -69,7 +70,8 @@ for station in STATIONS:
         df["pm25"],
         trend="add",
         damped_trend=True,
-        seasonal=None
+        seasonal="add",
+        seasonal_periods=24
     ).fit()
 
     forecast_pm25 = model_pm25.forecast(24)
@@ -79,7 +81,8 @@ for station in STATIONS:
         df["pm10"],
         trend="add",
         damped_trend=True,
-        seasonal=None
+        seasonal="add",
+        seasonal_periods=24
     ).fit()
 
     forecast_pm10 = model_pm10.forecast(24)
@@ -97,6 +100,10 @@ for station in STATIONS:
         "pm25_forecast": forecast_pm25.values,
         "pm10_forecast": forecast_pm10.values
     })
+
+    # Nie pozwól na wartości ujemne
+    forecast["pm25_forecast"] = forecast["pm25_forecast"].clip(lower=0)
+    forecast["pm10_forecast"] = forecast["pm10_forecast"].clip(lower=0)
 
     print()
     print(f"24h forecast for {station}:")
