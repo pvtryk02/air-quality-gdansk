@@ -174,56 +174,62 @@ question = st.text_input(
 
 @st.cache_resource
 def load_embedding_model():
-    return SentenceTransformer("all-MiniLM-L6-v2")
+    return SentenceTransformer(
+        "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    )
 
 
 if st.button("Szukaj"):
     if not question.strip():
         st.warning("Wpisz pytanie.")
     else:
-        model = load_embedding_model()
+        with st.spinner("Generowanie embeddingu i wyszukiwanie..."):
+            model = load_embedding_model()
 
-        question_embedding = model.encode(
-            question
-        ).tolist()
+            question_embedding = model.encode(
+                question
+            ).tolist()
 
-        conn = psycopg2.connect(
-            host=DB_HOST,
-            dbname=DB_NAME,
-            user=DB_USER,
-            password=DB_PASSWORD
-        )
-
-        cursor = conn.cursor()
-
-        cursor.execute(
-            """
-            SELECT
-                content,
-                source,
-                embedding <=> %s::vector AS distance
-            FROM knowledge_base
-            WHERE embedding IS NOT NULL
-            ORDER BY embedding <=> %s::vector
-            LIMIT 3;
-            """,
-            (
-                question_embedding,
-                question_embedding
+            conn = psycopg2.connect(
+                host=DB_HOST,
+                dbname=DB_NAME,
+                user=DB_USER,
+                password=DB_PASSWORD
             )
-        )
 
-        results = cursor.fetchall()
+            cursor = conn.cursor()
 
-        cursor.close()
-        conn.close()
+            cursor.execute(
+                """
+                SELECT
+                    content,
+                    source,
+                    embedding <=> %s::vector AS distance
+                FROM knowledge_base
+                WHERE embedding IS NOT NULL
+                ORDER BY embedding <=> %s::vector
+                LIMIT 3;
+                """,
+                (
+                    question_embedding,
+                    question_embedding
+                )
+            )
+
+            results = cursor.fetchall()
+
+            cursor.close()
+            conn.close()
 
         st.markdown("### Najbardziej podobny kontekst")
 
         if not results:
             st.info("Brak danych w bazie wiedzy.")
         else:
-            for i, (content, source, distance) in enumerate(results, start=1):
+            for i, (content, source, distance) in enumerate(
+                results,
+                start=1
+            ):
                 similarity = 1 - float(distance)
 
                 with st.container(border=True):
