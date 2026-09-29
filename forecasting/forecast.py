@@ -68,6 +68,7 @@ for station in STATIONS:
     model_pm25 = ExponentialSmoothing(
         df["pm25"],
         trend="add",
+        damped_trend=True,
         seasonal=None
     ).fit()
 
@@ -77,6 +78,7 @@ for station in STATIONS:
     model_pm10 = ExponentialSmoothing(
         df["pm10"],
         trend="add",
+        damped_trend=True,
         seasonal=None
     ).fit()
 
