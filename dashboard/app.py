@@ -90,7 +90,7 @@ if not measurements.empty:
 
     col3.metric(
         "Ostatni pomiar",
-        latest["measured_at"].strftime("%Y-%m-%d %H:%M")
+        latest["measured_at"].strftime("%d.%m.%Y %H:%M")
     )
 
 st.subheader("Historia pomiarów")
@@ -98,6 +98,13 @@ st.subheader("Historia pomiarów")
 history_chart = measurements.set_index("measured_at")[
     ["pm25", "pm10"]
 ]
+
+history_chart = history_chart.rename(
+    columns={
+        "pm25": "PM2.5",
+        "pm10": "PM10"
+    }
+)
 
 st.line_chart(history_chart)
 
@@ -107,12 +114,41 @@ forecast_chart = forecasts.set_index("forecast_at")[
     ["pm25_forecast", "pm10_forecast"]
 ]
 
+forecast_chart = forecast_chart.rename(
+    columns={
+        "pm25_forecast": "PM2.5 prognoza",
+        "pm10_forecast": "PM10 prognoza"
+    }
+)
+
 st.line_chart(forecast_chart)
 
 st.subheader("Tabela prognozy")
 
+forecast_table = forecasts.copy()
+
+forecast_table["forecast_at"] = forecast_table[
+    "forecast_at"
+].dt.strftime("%d.%m.%Y %H:%M")
+
+forecast_table = forecast_table.rename(
+    columns={
+        "forecast_at": "Data i godzina",
+        "pm25_forecast": "PM2.5 [µg/m³]",
+        "pm10_forecast": "PM10 [µg/m³]"
+    }
+)
+
+forecast_table["PM2.5 [µg/m³]"] = forecast_table[
+    "PM2.5 [µg/m³]"
+].round(1)
+
+forecast_table["PM10 [µg/m³]"] = forecast_table[
+    "PM10 [µg/m³]"
+].round(1)
+
 st.dataframe(
-    forecasts,
+    forecast_table,
     use_container_width=True,
     hide_index=True
 )
