@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import psycopg2
+from sentence_transformers import SentenceTransformer
 
 DB_HOST = "postgres"
 DB_NAME = "airquality"
@@ -152,3 +153,83 @@ st.dataframe(
     use_container_width=True,
     hide_index=True
 )
+
+# ---------------------------------------------------------
+# Wyszukiwanie semantyczne
+# ---------------------------------------------------------
+
+st.divider()
+
+st.subheader("Wyszukiwanie semantyczne")
+
+st.write(
+    "Wpisz pytanie dotyczące projektu. "
+    "System wyszuka najbardziej podobne znaczeniowo informacje w bazie pgvector."
+)
+
+question = st.text_input(
+    "Pytanie:",
+    placeholder="np. Jak działa prognozowanie jakości powietrza?"
+)
+
+@st.cache_resource
+def load_embedding_model():
+    return SentenceTransformer("all-MiniLM-L6-v2")
+
+
+if st.button("Szukaj"):
+    if not question.strip():
+        st.warning("Wpisz pytanie.")
+    else:
+        model = load_embedding_model()
+
+        question_embedding = model.encode(
+            question
+        ).tolist()
+
+        conn = psycopg2.connect(
+            host=DB_HOST,
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD
+        )
+
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT
+                content,
+                source,
+                embedding <=> %s::vector AS distance
+            FROM knowledge_base
+            WHERE embedding IS NOT NULL
+            ORDER BY embedding <=> %s::vector
+            LIMIT 3;
+            """,
+            (
+                question_embedding,
+                question_embedding
+            )
+        )
+
+        results = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+
+        st.markdown("### Najbardziej podobny kontekst")
+
+        if not results:
+            st.info("Brak danych w bazie wiedzy.")
+        else:
+            for i, (content, source, distance) in enumerate(results, start=1):
+                similarity = 1 - float(distance)
+
+                with st.container(border=True):
+                    st.markdown(f"**Wynik {i}**")
+                    st.write(content)
+                    st.caption(
+                        f"Źródło: {source} | "
+                        f"Podobieństwo: {similarity:.3f}"
+                    )
